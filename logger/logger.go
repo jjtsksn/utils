@@ -55,12 +55,14 @@ func New(cfg Config) (*zerolog.Logger, error) {
 	return logger, nil
 }
 
-func Close() {
+func Close() error {
 	mu.Lock()
 	defer mu.Unlock()
+	var err error
 	for _, writer := range writers {
 		if closer, ok := writer.(io.Closer); ok {
-			_ = closer.Close()
+			err = closer.Close()
 		}
 	}
+	return err
 }
