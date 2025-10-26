@@ -7,7 +7,7 @@ import (
 )
 
 type Config struct {
-	StaticLabels  []string
+	StaticLabel   []string
 	LokiURL       string
 	LokiUser      string
 	LokiPass      string
