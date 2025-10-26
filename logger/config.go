@@ -7,7 +7,7 @@ import (
 )
 
 type Config struct {
-	StaticLabels  []string
+	StaticLabels  map[string]any
 	LokiURL       string
 	LokiUser      string
 	LokiPass      string
@@ -18,6 +18,9 @@ type Config struct {
 }
 
 func (c *Config) Validate() error {
+	if c.StaticLabels == nil || len(c.StaticLabels) == 0 {
+		return errors.New("StaticLabels must not be empty")
+	}
 	if c.TimeFormat == "" {
 		return errors.New("time format is required")
 	}

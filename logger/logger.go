@@ -31,12 +31,9 @@ func New(cfg Config) (*zerolog.Logger, error) {
 		}
 
 		if cfg.EnableLoki {
-			labels := make(map[string]interface{})
-			for _, label := range cfg.StaticLabels {
-				labels[label] = "job"
-			}
+
 			var lokiWriter io.Writer
-			lokiWriter, err = client.NewSimpleClient(cfg.LokiURL, cfg.LokiUser, cfg.LokiPass, client.WithStaticLabels(labels))
+			lokiWriter, err = client.NewSimpleClient(cfg.LokiURL, cfg.LokiUser, cfg.LokiPass, client.WithStaticLabels(cfg.StaticLabels))
 			if err != nil {
 				return
 			}
