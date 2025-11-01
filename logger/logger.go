@@ -1,65 +1,30 @@
 package logger
 
 import (
-	"fmt"
-	"io"
+	"log/slog"
 	"os"
-	"sync"
-
-	"github.com/rs/zerolog"
-	"github.com/thisismz/zerolog-loki/client"
 )
 
-var (
-	once    sync.Once
-	logger  *zerolog.Logger
-	writers []io.Writer
-	mu      sync.Mutex
-)
-
-func New(cfg Config) (*zerolog.Logger, error) {
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid config: %w", err)
+func New(env, serviceName string) *slog.Logger {
+	var logger *slog.Logger
+	switch env {
+	case "prod":
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			AddSource: true,
+			Level:     slog.LevelInfo,
+		}))
+	case "dev":
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			AddSource: true,
+			Level:     slog.LevelDebug,
+		}))
+	case "local":
+		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			AddSource: false,
+			Level:     slog.LevelDebug,
+		}))
+	default:
+		logger = slog.Default()
 	}
-
-	var err error
-	once.Do(func() {
-		writers = make([]io.Writer, 0)
-		if cfg.EnableConsole {
-			consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: cfg.TimeFormat}
-			writers = append(writers, consoleWriter)
-		}
-
-		if cfg.EnableLoki {
-
-			var lokiWriter io.Writer
-			lokiWriter, err = client.NewSimpleClient(cfg.LokiURL, cfg.LokiUser, cfg.LokiPass, client.WithStaticLabels(cfg.StaticLabels))
-			if err != nil {
-				return
-			}
-			writers = append(writers, lokiWriter)
-		}
-		multiWriter := zerolog.MultiLevelWriter(writers...)
-		lg := zerolog.New(multiWriter).Level(cfg.LogLevel).With().Timestamp().Logger()
-		logger = &lg
-
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("create loki client: %w", err)
-	}
-
-	return logger, nil
-}
-
-func Close() error {
-	mu.Lock()
-	defer mu.Unlock()
-	var err error
-	for _, writer := range writers {
-		if closer, ok := writer.(io.Closer); ok {
-			err = closer.Close()
-		}
-	}
-	return err
+	return logger.With("service", serviceName)
 }
